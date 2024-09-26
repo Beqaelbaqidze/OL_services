@@ -109,7 +109,7 @@ export class WFSRequestHandler {
   
         // Handle any other response types
         const text = await response.text();
-        console.error("Unexpected response format:", text);
+        console.log("Unexpected response format:", text);
         return text;
   
       } catch (error) {

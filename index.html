@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>OpenLayers with Sidebar and Modal</title>
+  <title>OpenLayers with Sidebar</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol/ol.css" />
   <style>
     body {
@@ -25,66 +25,92 @@
 
     #map {
       flex-grow: 1;
+      position: relative;
     }
 
-    #styleModal {
-      display: none;
+    /* Right sidebar styling */
+    #rightSidebar {
+      display: flex;
+      align-items: center;
+      width: 0;
+      height: calc(100vh - 40px);
       position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background-color: white;
-      padding: 20px;
-      border: 1px solid #ddd;
-      z-index: 1000;
+      top: 0;
+      right: 0;
+      background-color: #fff;
+      overflow-x: hidden;
+      padding-top: 20px;
+      border-left: 1px solid #ddd;
+      transition: 0.3s;
+      display: flex;
+      flex-direction: column;
     }
 
-    #styleModal div {
-      margin-bottom: 10px;
+    #rightSidebar.open {
+      width: 300px;
     }
 
-    /* Modal Styles */
-.modal {
-  display: none; 
-  position: fixed;
-  z-index: 1000;
-  left: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
-  overflow: auto;
-  background-color: rgba(0,0,0,0.4); /* Black background with opacity */
-}
+    #rightSidebar h2 {
+      padding: 10px;
+      text-align: center;
+      border-bottom: 1px solid #ddd;
+    }
 
-.modal-dialog {
-  position: relative;
-  margin: 15% auto;
-  max-width: 90%;
-}
+    #featureForm {
+      display: grid;
+      grid-template-columns: 1fr 2fr;
+      gap: 10px;
+      padding: 10px;
+    }
 
-.modal-content {
-  background-color: #fff;
-  padding: 20px;
-  border: 1px solid #888;
-}
+    /* Style input fields and buttons */
+    input[type="text"],
+    input[type="number"],
+    input[type="date"] {
+      width: 100%; /* Full-width inputs */
+      padding: 8px;
+      margin: 4px 0;
+      box-sizing: border-box;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
 
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
+    button {
+      align-self: center;
+      cursor: pointer;
+      padding: 10px 20px;
+      background-color: #007BFF;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      transition: background-color 0.3s;
+      margin-top: 10px;
+    }
 
-.modal-body {
-  max-height: 400px;
-  overflow-y: auto;
-}
+    button:hover {
+      background-color: #0056b3;
+    }
 
-.close {
-  font-size: 24px;
-  font-weight: bold;
-  cursor: pointer;
-}
+    #applyEditBtn {
+      margin-top: 20px;
+      text-align: center;
+    }
 
+    .closeSidebarBtn {
+      color: #aaa;
+      text-align: center;
+      padding: 10px;
+      cursor: pointer;
+    }
+
+    .closeSidebarBtn:hover {
+      color: black;
+    }
+    #jsGrid{
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
   </style>
 </head>
 <body>
@@ -94,46 +120,13 @@
   </div>
   <div id="map"></div>
 
-  <div id="styleModal">
-    <h3>Change Layer Style</h3>
-    <div>
-      <label for="strokeColor">Stroke Color:</label>
-      <input type="color" id="strokeColor" value="#000000">
-    </div>
-    <div>
-      <label for="fillColor">Fill Color:</label>
-      <input type="color" id="fillColor" value="#0000ff">
-    </div>
-    <div>
-      <label for="noFill">No Fill:</label>
-      <input type="checkbox" id="noFill">
-    </div>
-    <div>
-      <button id="applyStyleBtn">Apply</button>
-      <button id="cancelStyleBtn">Cancel</button>
-    </div>
+  <!-- Right Sidebar for feature information -->
+  <div id="rightSidebar">
+    <span class="closeSidebarBtn">&times; Close</span>
+    <h2>Feature Information</h2>
+    <div id="jsGrid"></div>
   </div>
-  <!-- Modal structure -->
-<div id="jsGridModal" class="modal" tabindex="-1" role="dialog">
-  <div class="modal-dialog modal-lg" role="document">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Feature Data</h5>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-          <span aria-hidden="true">&times;</span>
-        </button>
-      </div>
-      <div class="modal-body">
-        <!-- jsGrid will be injected here -->
-        <div id="jsGrid"></div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-      </div>
-    </div>
-  </div>
-</div>
-
+  
 
   <script src="main.js" type="module"></script>
 </body>

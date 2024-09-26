@@ -1,154 +1,290 @@
-import 'ol/ol.css';
-import { Map, View } from 'ol';
-import TileLayer from 'ol/layer/Tile';
-import OSM from 'ol/source/OSM';
-import VectorLayer from 'ol/layer/Vector';
-import VectorSource from 'ol/source/Vector';
-import GeoJSON from 'ol/format/GeoJSON';
-import { Style, Stroke, Fill } from 'ol/style';
-import { bbox } from 'ol/loadingstrategy';
-import proj4 from 'proj4';
-import { register } from 'ol/proj/proj4';
-import { get as getProjection } from 'ol/proj';
+import "ol/ol.css";
+import { Map, View } from "ol";
+import TileLayer from "ol/layer/Tile";
+import OSM from "ol/source/OSM";
+import VectorLayer from "ol/layer/Vector";
+import VectorSource from "ol/source/Vector";
+import GeoJSON from "ol/format/GeoJSON";
+import { Style, Stroke, Fill, Circle as CircleStyle } from "ol/style";
+import proj4 from "proj4";
+import { register } from "ol/proj/proj4";
+import { get as getProjection } from "ol/proj";
+import { WFSRequestHandler } from "./wfsHandler";
+import { showFeatureSidebar } from './gridHandler';  // Import functions from gridHandler.js
 
+let selectedFeature = null;
 
+const baseUrl = `http://localhost:8080/geoserver/sketchup/ows`;
+const version = "2.0.0";
+const workspace = "sketchup";
+const wfsRequestHandler = new WFSRequestHandler(version, workspace, baseUrl);
 
 // Register the EPSG:32638 projection
-proj4.defs('EPSG:32638', '+proj=utm +zone=38 +datum=WGS84 +units=m +no_defs');
+proj4.defs("EPSG:32638", "+proj=utm +zone=38 +datum=WGS84 +units=m +no_defs");
 register(proj4);
 
-const projection = getProjection('EPSG:32638');
+const projection = getProjection("EPSG:32638");
 
-// Initialize the map
+const map = new Map({
+  target: "map",
+  layers: [
+    new TileLayer({
+      source: new OSM(),
+      name: "OpenStreetMap",
+    }),
+  ],
+  view: new View({
+    projection: projection,
+    center: [500000, 4649776],
+    zoom: 10,
+  }),
+});
+
 export function initializeMap() {
-  return new Map({
-    target: 'map',
-    layers: [
-      new TileLayer({
-        source: new OSM(),
+  return map;
+}
+
+function createStyleFunction() {
+  return function (feature) {
+    const geometryType = feature.getGeometry().getType();
+
+    if (geometryType === "Point" || geometryType === "MultiPoint") {
+      return new Style({
+        image: new CircleStyle({
+          radius: 6,
+          fill: new Fill({
+            color: "yellow",
+          }),
+          stroke: new Stroke({
+            color: "black",
+            width: 2,
+          }),
+        }),
+      });
+    }
+
+    if (geometryType === "LineString" || geometryType === "MultiLineString") {
+      return new Style({
+        stroke: new Stroke({
+          color: "red",
+          width: 2,
+        }),
+      });
+    }
+
+    if (geometryType === "Polygon" || geometryType === "MultiPolygon") {
+      return new Style({
+        stroke: new Stroke({
+          color: "blue",
+          width: 2,
+        }),
+        fill: new Fill({
+          color: "rgba(0, 0, 255, 0)", // The last value '0.5' controls the opacity
+        }),
+      });
+    }
+  };
+}
+
+export async function addWfsLayer(layerName) {
+  try {
+    const data = await wfsRequestHandler.getFeature(layerName);
+    console.log("Received GeoJSON Data:", data);
+
+    const vectorSource = new VectorSource({
+      features: new GeoJSON().readFeatures(data, {
+        featureProjection: projection,
       }),
-    ],
-    view: new View({
-      projection: projection,
-      center: [500000, 4649776],
-      zoom: 10,
-    }),
-  });
-}
-
-// Function to add a WFS layer to the map
-export function addWfsLayer(layerName, map) {
-  const vectorSource = new VectorSource({
-    format: new GeoJSON(),
-    url: function(extent) {
-      return `http://localhost:8080/geoserver/EditableDataGroup/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=EditableDataGroup:${layerName}&outputFormat=application/json&srsname=EPSG:32638`;
-    },
-    strategy: bbox, // Use bbox strategy for WFS loading
-  });
-
-  const layerStyle = new Style({
-    stroke: new Stroke({
-      color: 'blue', // Customize the color and width based on layer or attributes
-      width: 2,
-    }),
-    fill: new Fill({
-      color: 'rgba(0, 0, 255, 0.1)', // Fill color with some transparency
-    }),
-  });
-
-  const vectorLayer = new VectorLayer({
-    source: vectorSource,
-    style: layerStyle,
-  });
-
-  vectorLayer.set('name', layerName); // Set the layer name as a property
-
-  map.addLayer(vectorLayer);
-}
-
-
-
-
-const wfsHandler = new wfsHandler.WFSService();
-
-export async function createLayerControls(layersConfig, map) {
-  const layerControls = document.getElementById('layers-list');
-
-  // Loop through each layer and create a control
-  layersConfig.forEach((layer, index) => {
-    const layerControl = document.createElement('div');
-    layerControl.className = 'layerControl';
-    layerControl.innerHTML = `
-      <input type="checkbox" id="layer-${index}" name="${layer.name}" checked>
-      <label for="layer-${index}">${layer.name}</label>
-      <button id="zoom-${index}">Zoom</button>
-      <button id="style-${index}">Style</button>
-      <button id="draw-${index}">Draw</button>
-    `;
-
-    // Append the control to the layerControls container
-    layerControls.appendChild(layerControl);
-
-    // Add event listeners for zoom and style buttons
-    document.getElementById(`zoom-${index}`).addEventListener('click', () => {
-      zoomToLayer(layer.name, map);
     });
 
-    document.getElementById(`style-${index}`).addEventListener('click', () => {
-      showStyleModal(layer.name);
+    const vectorLayer = new VectorLayer({
+      source: vectorSource,
+      style: createStyleFunction(),
     });
 
-    document.getElementById(`draw-${index}`).addEventListener('click', () => {
-      drawFeature(layer.name, map);
-    });
-  });
-}
+    vectorLayer.set("name", layerName);
+    map.addLayer(vectorLayer);
 
-export function zoomToLayer(layerName, map) {
-  const layer = map.getLayers().getArray().find(l => {
-    return l.get('name') === layerName;
-  });
-
-  if (layer) {
-    const source = layer.getSource();
-    const extent = source.getExtent();
-    map.getView().fit(extent, { size: map.getSize(), maxZoom: 18 });
-  } else {
-    console.error(`Layer ${layerName} not found.`);
+    generateLayersList(map.getLayers().getArray());
+  } catch (error) {
+    console.error("Error fetching WFS data:", error);
   }
 }
 
+export function generateLayersList(layers) {
+  const layersListElement = document.getElementById("layers-list");
 
-export function showStyleModal(layerName) {
-  const modal = document.getElementById('styleModal');
-  const layer = map.getLayers().getArray().find(l => {
-    return l.get('name') === layerName;
+  // Clear any existing content
+  layersListElement.innerHTML = "";
+
+  layers.forEach((layer, index) => {
+    // Create a container for each layer item
+    const layerItem = document.createElement("div");
+    layerItem.classList.add("layer-item");
+
+    // Create a checkbox for the layer
+    const layerCheckbox = document.createElement("input");
+    layerCheckbox.type = "checkbox";
+    layerCheckbox.id = `layer-checkbox-${index}`;
+    layerCheckbox.checked = layer.getVisible(); // Set initial state based on layer visibility
+    layerCheckbox.addEventListener("change", (event) => {
+      layer.setVisible(event.target.checked); // Toggle layer visibility
+    });
+
+    // Create a label for the checkbox
+    const layerLabel = document.createElement("label");
+    layerLabel.htmlFor = `layer-checkbox-${index}`;
+    layerLabel.innerText = layer.get("name") || `Layer ${index + 1}`;
+
+    // Append the checkbox and label to the layer item container
+    layerItem.appendChild(layerCheckbox);
+    layerItem.appendChild(layerLabel);
+
+    // Check if the layer is a vector layer (add buttons for vector layers only)
+    if (layer instanceof VectorLayer) {
+      // Create a button for zooming to the layer's extent
+      const zoomButton = document.createElement("button");
+      zoomButton.innerText = "Zoom";
+      zoomButton.addEventListener("click", () => {
+        const extent = layer.getSource().getExtent();
+        map.getView().fit(extent, { duration: 1000 });
+      });
+
+      // Append the buttons to the layer item container
+      layerItem.appendChild(zoomButton);
+    }
+
+    // Append the layer item to the layers list container
+    layersListElement.appendChild(layerItem);
   });
+}
 
-  if (layer) {
-    const style = layer.getStyle();
-    const strokeColor = style.getStroke().getColor();
-    const fillColor = style.getFill().getColor();
+function selectFeature(feature) {
+  if (selectedFeature) {
+    selectedFeature.setStyle(null);
+    selectedFeature = null;
+  }
 
-    document.getElementById('strokeColor').value = strokeColor;
-    document.getElementById('fillColor').value = fillColor;
+  if (feature) {
+    feature.setStyle(
+      new Style({
+        image: new CircleStyle({
+          radius: 10,
+          fill: new Fill({
+            color: "aqua",
+            opocity: 0.5,
+          }),
+          stroke: new Stroke({
+            color: "aqua",
+            width: 4,
+          }),
+        }),
+        stroke: new Stroke({
+          color: "aqua",
+          width: 5,
+        }),
+        fill: new Fill({
+          color: "aqua",
+          opocity: 0.5,
+        }),
+      })
+    );
 
-    modal.style.display = 'block';
-
-    document.getElementById('saveStyle').addEventListener('click', () => {
-      const strokeColor = document.getElementById('strokeColor').value;
-      const fillColor = document.getElementById('fillColor').value;
-      updateLayerStyle(layerName, strokeColor, fillColor);
-      modal.style.display = 'none';
-    });
-
-    document.getElementById('cancelStyle').addEventListener('click', () => {
-      modal.style.display = 'none';
-    });
-  } else {
-    console.error(`Layer ${layerName} not found.`);
+    selectedFeature = feature;
+    const properties = feature.getProperties();
+    showFeatureModal(properties); // Use the imported showFeatureModal function
   }
 }
 
+function getTopPriorityFeature(clickedPixel, map) {
+  const layers = map.getLayers().getArray();
+  const featuresAtPixel = [];
 
+  layers.forEach((layer) => {
+    const features = map.getFeaturesAtPixel(clickedPixel, {
+      layerFilter: (layerToFilter) => layerToFilter === layer,
+    });
+
+    if (features && features.length > 0) {
+      featuresAtPixel.push({
+        layer,
+        features,
+      });
+    }
+  });
+
+  if (featuresAtPixel.length > 0) {
+    const layersListElement = document.getElementById("layers-list");
+    const layersInHtmlOrder = Array.from(
+      layersListElement.getElementsByClassName("layer-item")
+    ).map((element) => element.dataset.layerName);
+
+    featuresAtPixel.sort((a, b) => {
+      const layerAName = a.layer.get("name");
+      const layerBName = b.layer.get("name");
+      return (
+        layersInHtmlOrder.indexOf(layerAName) -
+        layersInHtmlOrder.indexOf(layerBName)
+      );
+    });
+
+    return {
+      feature: featuresAtPixel[0].features[0],
+      layer: featuresAtPixel[0].layer,
+    };
+  }
+
+  return null;
+}
+
+async function fieldType(layerName) {
+  try {
+    const data = await wfsRequestHandler.describeFeatureType(layerName);
+    const parser = new DOMParser();
+    const xmlDoc = parser.parseFromString(data, "application/xml");
+    const elements = xmlDoc.getElementsByTagName("xsd:element");
+    const fieldTypes = [];
+
+    for (let i = 0; i < elements.length; i++) {
+      const name = elements[i].getAttribute("name");
+      const type = elements[i].getAttribute("type");
+      fieldTypes.push({ name, type });
+    }
+
+    console.log("Field Types:", fieldTypes);
+    return fieldTypes; // Return field types
+  } catch (error) {
+    console.error("Error fetching DescribeFeatureType data:", error);
+  }
+}
+
+export function layerHandler() {
+  map.on('click', async (event) => {
+    const clickedPixel = event.pixel;
+
+    // Get both top feature and its corresponding layer
+    const topPriorityResult = getTopPriorityFeature(clickedPixel, map);
+
+    if (topPriorityResult && topPriorityResult.feature) {
+      
+      const { feature: topPriorityFeature, layer } = topPriorityResult;
+      const properties = topPriorityFeature.getProperties();
+      const featureName = topPriorityFeature.getGeometry().getType();
+
+      // Get the name of the clicked layer
+      const selectedLayerName = layer.get("name");
+      console.log(`Feature found in layer: ${selectedLayerName}`);
+
+      // Fetch field types using the layer name
+      const fieldTypes = await fieldType(selectedLayerName); // Use the layer name here
+
+      // Call showFeatureModal, passing properties and fieldTypes
+      await showFeatureSidebar(properties, fieldTypes);
+      selectFeature(topPriorityResult.feature);
+    } else {
+      selectFeature(null);
+      console.log('No feature found at this location.');
+    }
+  });
+}
 

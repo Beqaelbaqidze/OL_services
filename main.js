@@ -1,17 +1,16 @@
-import { initializeMap, addWfsLayer } from './src/mapSetup.js';
-import { createLayerControls } from './src/layerControls.js';
-
-
+import { initializeMap, layerHandler, addWfsLayer } from './src/mapSetup.js';
 
 let map;
 let layers = [
   { name: 'nakveti', visible: true },
-  { name: 'shenoba', visible: true }
+  { name: 'shenoba', visible: true },
+  { name: 'topo_point', visible: true },
+  { name: 'topo_line', visible: true },
+
 ];
 
 document.addEventListener('DOMContentLoaded', () => {
-  // Initialize the map
   map = initializeMap();
   layers.forEach(layer => addWfsLayer(layer.name, map));
-  createLayerControls(layers, map);
+  layerHandler();
 });
