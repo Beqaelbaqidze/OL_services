@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OpenLayers with Sidebar and Modal</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol/ol.css" />
+  <style>
+    body {
+      margin: 0;
+      display: flex;
+      height: 100vh;
+      font-family: Arial, sans-serif;
+    }
+
+    #leftSidebar {
+      width: 300px;
+      background-color: #f4f4f4;
+      padding: 10px;
+    }
+
+    #layers-list {
+      margin-top: 20px;
+    }
+
+    #map {
+      flex-grow: 1;
+    }
+
+    #styleModal {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: white;
+      padding: 20px;
+      border: 1px solid #ddd;
+      z-index: 1000;
+    }
+
+    #styleModal div {
+      margin-bottom: 10px;
+    }
+
+    /* Modal Styles */
+.modal {
+  display: none; 
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background-color: rgba(0,0,0,0.4); /* Black background with opacity */
+}
+
+.modal-dialog {
+  position: relative;
+  margin: 15% auto;
+  max-width: 90%;
+}
+
+.modal-content {
+  background-color: #fff;
+  padding: 20px;
+  border: 1px solid #888;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-body {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.close {
+  font-size: 24px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+  </style>
+</head>
+<body>
+  <div id="leftSidebar">
+    <h2>Layers</h2>
+    <div id="layers-list"></div>
+  </div>
+  <div id="map"></div>
+
+  <div id="styleModal">
+    <h3>Change Layer Style</h3>
+    <div>
+      <label for="strokeColor">Stroke Color:</label>
+      <input type="color" id="strokeColor" value="#000000">
+    </div>
+    <div>
+      <label for="fillColor">Fill Color:</label>
+      <input type="color" id="fillColor" value="#0000ff">
+    </div>
+    <div>
+      <label for="noFill">No Fill:</label>
+      <input type="checkbox" id="noFill">
+    </div>
+    <div>
+      <button id="applyStyleBtn">Apply</button>
+      <button id="cancelStyleBtn">Cancel</button>
+    </div>
+  </div>
+  <!-- Modal structure -->
+<div id="jsGridModal" class="modal" tabindex="-1" role="dialog">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Feature Data</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <!-- jsGrid will be injected here -->
+        <div id="jsGrid"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+  <script src="main.js" type="module"></script>
+</body>
+</html>
