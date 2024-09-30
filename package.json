@@ -18,6 +18,6 @@
     "jsgrid": "^1.5.3",
     "ol": "latest",
     "proj4": "^2.12.1",
-    "tabulator-tables": "^6.2.5"
+    "tabulator-tables": "^6.3.0"
   }
 }
