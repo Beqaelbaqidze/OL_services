@@ -13,7 +13,7 @@
   "dependencies": {
     "ag-grid-community": "^32.2.1",
     "env": "^0.0.2",
-    "handsontable": "^14.5.0",
+    "handsontable": "^14.6.0",
     "jquery": "^3.7.1",
     "jsgrid": "^1.5.3",
     "ol": "latest",
